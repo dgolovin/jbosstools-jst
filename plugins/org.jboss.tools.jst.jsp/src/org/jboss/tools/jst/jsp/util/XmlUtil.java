@@ -10,6 +10,7 @@
  ******************************************************************************/ 
 package org.jboss.tools.jst.jsp.util;
 
+import java.io.BufferedInputStream;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -41,7 +42,7 @@ public class XmlUtil {
 		FileInputStream inStream = null;
 		try {
 			inStream = new FileInputStream(xmlFileName);
-			InputSource inSource = new InputSource(inStream);
+			InputSource inSource = new InputSource(new BufferedInputStream(inStream));
 			return getDocumentElement(inSource);
 		} finally {
 			try {
