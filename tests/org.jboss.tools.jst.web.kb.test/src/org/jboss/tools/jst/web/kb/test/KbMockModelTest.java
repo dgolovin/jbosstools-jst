@@ -20,6 +20,7 @@ import org.eclipse.core.resources.IBuildConfiguration;
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IProject;
 import org.eclipse.core.resources.IResource;
+import org.eclipse.core.resources.IncrementalProjectBuilder;
 import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.core.runtime.CoreException;
 import org.jboss.tools.jst.web.kb.IKbProject;
@@ -53,17 +54,18 @@ public class KbMockModelTest extends TestCase {
 		assertNotNull(m);
 	}
 
-	public void testMockModel() {
+	public void testMockModel() throws CoreException {
 		IKbProject kbProject = KbProjectFactory.getKbProject(project, true, true);
 		assertNull(kbProject);
 	
 		boolean b = KbProject.checkKBBuilderInstalled(project);
 		assertFalse(b);
-	
-		JobUtils.waitForIdle(2000);
+		project.build(IncrementalProjectBuilder.FULL_BUILD, null);
+
 		kbProject = KbProjectFactory.getKbProject(project, true, false);
 		assertNotNull(kbProject);
-
+		JobUtils.delay(1500);
+		JobUtils.waitForIdle();
 		ITagLibrary[] ls = kbProject.getProjectTagLibraries();
 		
 		assertTrue(ls.length > 0);
