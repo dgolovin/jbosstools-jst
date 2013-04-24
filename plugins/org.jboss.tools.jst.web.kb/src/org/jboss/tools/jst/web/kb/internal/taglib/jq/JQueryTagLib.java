@@ -10,23 +10,25 @@
  ******************************************************************************/ 
 package org.jboss.tools.jst.web.kb.internal.taglib.jq;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+import javax.xml.xpath.XPathConstants;
+import javax.xml.xpath.XPathExpression;
+import javax.xml.xpath.XPathExpressionException;
+import javax.xml.xpath.XPathFactory;
+
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IResource;
-import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IPath;
 import org.eclipse.jface.resource.ImageDescriptor;
-import org.eclipse.wst.sse.core.StructuredModelManager;
-import org.eclipse.wst.sse.core.internal.provisional.IStructuredModel;
 import org.eclipse.wst.sse.core.internal.provisional.text.IStructuredDocumentRegion;
 import org.eclipse.wst.xml.core.internal.provisional.document.IDOMAttr;
 import org.eclipse.wst.xml.core.internal.provisional.document.IDOMDocument;
-import org.eclipse.wst.xml.core.internal.provisional.document.IDOMModel;
 import org.eclipse.wst.xml.core.internal.provisional.document.IDOMNode;
 import org.jboss.tools.common.text.TextProposal;
+import org.jboss.tools.common.text.ext.util.StructuredModelWrapper;
+import org.jboss.tools.common.text.ext.util.StructuredModelWrapper.Command;
 import org.jboss.tools.jst.web.kb.IPageContext;
 import org.jboss.tools.jst.web.kb.KbQuery;
 import org.jboss.tools.jst.web.kb.WebKbPlugin;
@@ -36,8 +38,7 @@ import org.jboss.tools.jst.web.kb.taglib.ICustomTagLibrary;
 import org.jboss.tools.jst.web.kb.taglib.INameSpace;
 import org.jboss.tools.jst.web.kb.taglib.ITagLibRecognizer;
 import org.jboss.tools.jst.web.kb.taglib.ITagLibrary;
-import org.w3c.dom.Element;
-import org.w3c.dom.NamedNodeMap;
+import org.w3c.dom.Attr;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
@@ -45,6 +46,16 @@ import org.w3c.dom.NodeList;
  * @author Alexey Kazakov
  */
 public class JQueryTagLib implements ICustomTagLibrary {
+
+	private static XPathExpression EXPR_ID_VALUE;
+	
+	static {
+		try {
+			EXPR_ID_VALUE = XPathFactory.newInstance().newXPath().compile("//@id");
+		} catch (XPathExpressionException e) {
+			WebKbPlugin.getDefault().logError(e);
+		}
+	}
 
 	private static final ImageDescriptor IMAGE = WebKbPlugin.getImageDescriptor(WebKbPlugin.class, "EnumerationProposal.gif"); //$NON-NLS-1$
 	private static final String URI = "jQuery";
@@ -105,54 +116,33 @@ public class JQueryTagLib implements ICustomTagLibrary {
 	 * @return
 	 */
 	public static ElementID[] findAllIds(IPageContext context) {
-		List<ElementID> ids = new ArrayList<ElementID>();
+		final List<ElementID> ids = new ArrayList<ElementID>();
 
 		IFile file = context.getResource();
 		if(file!=null) {
-			IStructuredModel model = null;
-			try {
-				model = StructuredModelManager.getModelManager().getModelForRead(file);
-				IDOMDocument xmlDocument = (model instanceof IDOMModel) ? ((IDOMModel) model).getDocument() : null;
-				if(xmlDocument != null) {
-					findIdsInChildElements(ids, xmlDocument);
+			StructuredModelWrapper.execute(file, new Command() {
+				public void execute(IDOMDocument xmlDocument) {
+					findIdsInChildElements(ids, xmlDocument);					
 				}
-			} catch (IOException e) {
-				WebKbPlugin.getDefault().logError(e);
-			} catch (CoreException e) {
-				WebKbPlugin.getDefault().logError(e);
-			} finally {
-				if (model != null) {
-					model.releaseFromRead();
-				}
-			}
+			});
 		}
-
 		return ids.toArray(new ElementID[ids.size()]);
 	}
 
-	private static void findIdsInChildElements(List<ElementID> ids, Node parentNode) {
-		NodeList list = parentNode.getChildNodes();
-		for(int i = 0; i < list.getLength(); i++) {
-			Node child = list.item(i);
-			if(child instanceof Element) {
-				NamedNodeMap attributes = child.getAttributes();
-				for(int j = 0; j < attributes.getLength(); j++) {
-					Node attr = attributes.item(j);
-					if("id".equalsIgnoreCase(attr.getNodeName())) {
-						String id = attr.getNodeValue();
-						if (attr instanceof IDOMAttr) {
-							int offset = ((IDOMAttr)attr).getValueRegionStartOffset() + 1;
-							String nodeString = null;
-							if(child instanceof IDOMNode) {
-								IStructuredDocumentRegion s = ((IDOMNode)child).getStartStructuredDocumentRegion();
-								nodeString = s.getText();
-							}
-							ids.add(new ElementID(id, offset, nodeString));
-						}
-					}
-				}
-				findIdsInChildElements(ids, child);
+	private static void findIdsInChildElements(List<ElementID> ids,
+			Node parentNode) {
+		try {
+			NodeList list = (NodeList) EXPR_ID_VALUE.evaluate(parentNode,
+					XPathConstants.NODESET);
+			for (int i = 0; i < list.getLength(); i++) {
+				Node attr = list.item(i);
+				IStructuredDocumentRegion s = ((IDOMNode) ((Attr) attr)
+						.getOwnerElement()).getStartStructuredDocumentRegion();
+				ids.add(new ElementID(attr.getNodeValue(), ((IDOMAttr) attr)
+						.getValueRegionStartOffset() + 1, s.getText()));
 			}
+		} catch (XPathExpressionException e) {
+			WebKbPlugin.getDefault().logError(e);
 		}
 	}
 
