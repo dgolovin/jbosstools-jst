@@ -47,16 +47,6 @@ import org.w3c.dom.NodeList;
  */
 public class JQueryTagLib implements ICustomTagLibrary {
 
-	private static XPathExpression EXPR_ID_VALUE;
-	
-	static {
-		try {
-			EXPR_ID_VALUE = XPathFactory.newInstance().newXPath().compile("//@id");
-		} catch (XPathExpressionException e) {
-			WebKbPlugin.getDefault().logError(e);
-		}
-	}
-
 	private static final ImageDescriptor IMAGE = WebKbPlugin.getImageDescriptor(WebKbPlugin.class, "EnumerationProposal.gif"); //$NON-NLS-1$
 	private static final String URI = "jQuery";
 
@@ -83,68 +73,36 @@ public class JQueryTagLib implements ICustomTagLibrary {
 	 */
 	@Override
 	public TextProposal[] getProposals(KbQuery query, IPageContext context) {
-		List<TextProposal> proposals = new ArrayList<TextProposal>();
-
-		if(query.getType()==KbQuery.Type.ATTRIBUTE_VALUE) {
-			String mask = query.getValue();
-			if(mask.startsWith("#")) {
-				String idMask = mask.substring(1);
-				ElementID[] ids = findAllIds(context);
-				for (ElementID id : ids) {
-					String idText = id.getId();
-					if(idText.startsWith(idMask)) {
-						String proposaltext = "#" + idText;
-						TextProposal proposal = new TextProposal();
-						proposal.setLabel(proposaltext);
-						proposal.setReplacementString(proposaltext);
-						proposal.setPosition(proposaltext.length());
-						proposal.setImageDescriptor(IMAGE);
-						proposal.setContextInfo(id.getDescription());
-	
-						proposals.add(proposal);
+		final List<TextProposal> proposals = new ArrayList<TextProposal>();
+		IFile file = context.getResource();
+		if (query.getType() == KbQuery.Type.ATTRIBUTE_VALUE && file != null) {
+			final String mask = query.getValue();
+			if (mask.startsWith("#")) {
+				StructuredModelWrapper.execute(file, new Command() {
+					public void execute(IDOMDocument xmlDocument) {
+						NodeList list;
+						try {
+							list = (NodeList) XPathFactory.newInstance().newXPath().compile(
+											"//*/@id[starts-with(.,'" + mask.substring(1) + "')]")
+												.evaluate(xmlDocument,XPathConstants.NODESET);
+							for (int i = 0; i < list.getLength(); i++) {
+								IDOMNode attr = ((IDOMNode) ((Attr) list.item(i)).getOwnerElement());
+								IStructuredDocumentRegion s = attr.getStartStructuredDocumentRegion();
+								String pt = "#" + attr.getNodeValue();
+								proposals.add(new TextProposal(IMAGE,pt,pt,pt.length(),s.getText()));
+							}
+						} catch (XPathExpressionException e) {
+							WebKbPlugin.getDefault().logError(e);
+						}
 					}
-				}
+				});
 			}
 		}
 
 		return proposals.toArray(new TextProposal[proposals.size()]);
 	}
 
-	/**
-	 * Returns an array of all element ID (<tagname id="..."/>) defined in the page
-	 * @param context
-	 * @return
-	 */
-	public static ElementID[] findAllIds(IPageContext context) {
-		final List<ElementID> ids = new ArrayList<ElementID>();
-
-		IFile file = context.getResource();
-		if(file!=null) {
-			StructuredModelWrapper.execute(file, new Command() {
-				public void execute(IDOMDocument xmlDocument) {
-					findIdsInChildElements(ids, xmlDocument);					
-				}
-			});
-		}
-		return ids.toArray(new ElementID[ids.size()]);
-	}
-
-	private static void findIdsInChildElements(List<ElementID> ids,
-			Node parentNode) {
-		try {
-			NodeList list = (NodeList) EXPR_ID_VALUE.evaluate(parentNode,
-					XPathConstants.NODESET);
-			for (int i = 0; i < list.getLength(); i++) {
-				Node attr = list.item(i);
-				IStructuredDocumentRegion s = ((IDOMNode) ((Attr) attr)
-						.getOwnerElement()).getStartStructuredDocumentRegion();
-				ids.add(new ElementID(attr.getNodeValue(), ((IDOMAttr) attr)
-						.getValueRegionStartOffset() + 1, s.getText()));
-			}
-		} catch (XPathExpressionException e) {
-			WebKbPlugin.getDefault().logError(e);
-		}
-	}
+	
 
 	/* (non-Javadoc)
 	 * @see org.jboss.tools.jst.web.kb.taglib.ITagLibrary#getResource()
@@ -231,42 +189,5 @@ public class JQueryTagLib implements ICustomTagLibrary {
 		JQueryTagLib newLib = new JQueryTagLib();
 		newLib.recognizer = recognizer;
 		return newLib;
-	}
-
-	public static class ElementID {
-
-		private String id;
-		private int offset;
-		private String description;
-
-		public ElementID(String id, int offset, String description) {
-			this.id = id;
-			this.offset = offset;
-			if(description!=null) {
-				description = description.replace("<", "&lt;").replace(">", "&gt;");
-			}
-			this.description = description;
-		}
-
-		/**
-		 * @return the description
-		 */
-		public String getDescription() {
-			return description;
-		}
-
-		/**
-		 * @return the id
-		 */
-		public String getId() {
-			return id;
-		}
-
-		/**
-		 * @return the offset
-		 */
-		public int getOffset() {
-			return offset;
-		}
 	}
 }
