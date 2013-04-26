@@ -13,6 +13,7 @@ package org.jboss.tools.jst.web.kb.internal.taglib.jq;
 import java.util.ArrayList;
 import java.util.List;
 
+import javax.xml.xpath.XPath;
 import javax.xml.xpath.XPathConstants;
 import javax.xml.xpath.XPathExpression;
 import javax.xml.xpath.XPathExpressionException;
@@ -39,7 +40,6 @@ import org.jboss.tools.jst.web.kb.taglib.INameSpace;
 import org.jboss.tools.jst.web.kb.taglib.ITagLibRecognizer;
 import org.jboss.tools.jst.web.kb.taglib.ITagLibrary;
 import org.w3c.dom.Attr;
-import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
 /**
@@ -47,8 +47,12 @@ import org.w3c.dom.NodeList;
  */
 public class JQueryTagLib implements ICustomTagLibrary {
 
+	private static final String SHARP = "#";
+	private static final String VERSION = "1";
+	private static final IComponent[] EMPTY = new IComponent[0];
 	private static final ImageDescriptor IMAGE = WebKbPlugin.getImageDescriptor(WebKbPlugin.class, "EnumerationProposal.gif"); //$NON-NLS-1$
 	private static final String URI = "jQuery";
+	protected static final XPath XPATH = XPathFactory.newInstance().newXPath();
 
 	private ITagLibRecognizer recognizer;
 
@@ -77,18 +81,17 @@ public class JQueryTagLib implements ICustomTagLibrary {
 		IFile file = context.getResource();
 		if (query.getType() == KbQuery.Type.ATTRIBUTE_VALUE && file != null) {
 			final String mask = query.getValue();
-			if (mask.startsWith("#")) {
+			if (mask.startsWith(SHARP)) {
 				StructuredModelWrapper.execute(file, new Command() {
 					public void execute(IDOMDocument xmlDocument) {
-						NodeList list;
 						try {
-							list = (NodeList) XPathFactory.newInstance().newXPath().compile(
+							NodeList list = (NodeList) XPathFactory.newInstance().newXPath().compile(
 											"//*/@id[starts-with(.,'" + mask.substring(1) + "')]")
 												.evaluate(xmlDocument,XPathConstants.NODESET);
 							for (int i = 0; i < list.getLength(); i++) {
-								IDOMNode attr = ((IDOMNode) ((Attr) list.item(i)).getOwnerElement());
-								IStructuredDocumentRegion s = attr.getStartStructuredDocumentRegion();
-								String pt = "#" + attr.getNodeValue();
+								IDOMAttr attr = ((IDOMAttr)  list.item(i));
+								IStructuredDocumentRegion s = ((IDOMNode)attr.getOwnerElement()).getStartStructuredDocumentRegion();
+								String pt = SHARP + attr.getNodeValue();
 								proposals.add(new TextProposal(IMAGE,pt,pt,pt.length(),s.getText()));
 							}
 						} catch (XPathExpressionException e) {
@@ -141,7 +144,7 @@ public class JQueryTagLib implements ICustomTagLibrary {
 	 */
 	@Override
 	public String getVersion() {
-		return "1";
+		return VERSION;
 	}
 
 	/* (non-Javadoc)
@@ -149,7 +152,7 @@ public class JQueryTagLib implements ICustomTagLibrary {
 	 */
 	@Override
 	public IComponent[] getComponents() {
-		return new IComponent[0];
+		return EMPTY;
 	}
 
 	/* (non-Javadoc)
@@ -157,7 +160,7 @@ public class JQueryTagLib implements ICustomTagLibrary {
 	 */
 	@Override
 	public IComponent[] getComponents(String nameTemplate) {
-		return new IComponent[0];
+		return EMPTY;
 	}
 
 	/* (non-Javadoc)
@@ -181,7 +184,7 @@ public class JQueryTagLib implements ICustomTagLibrary {
 	 */
 	@Override
 	public IComponent[] getComponents(KbQuery query, IPageContext context) {
-		return new IComponent[0];
+		return EMPTY;
 	}
 
 	@Override

@@ -682,7 +682,7 @@ public class PageContextFactory implements IResourceChangeListener {
 
 	private void fillContextForChildNodes(IDocument document, IDOMNode parent, ELContext context, List<String> parents, boolean dontUseCache) {
 		NodeList children = parent.getChildNodes();
-		for(int i = 0; children != null && i < children.getLength(); i++) {
+		for(int i = 0; i < children.getLength(); i++) {
 			Node child = children.item(i);
 			if (child instanceof IDOMNode) {
 				fillContextForNode(document, (IDOMNode)child, context, parents, dontUseCache);

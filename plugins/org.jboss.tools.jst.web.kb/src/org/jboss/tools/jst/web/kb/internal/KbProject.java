@@ -634,7 +634,7 @@ public class KbProject extends KbObject implements IKbProject {
 		synchronized(sourcePaths2) {
 		for (IPath path : sourcePaths2.keySet()) {
 			IFile f = ResourcesPlugin.getWorkspace().getRoot().getFile(path);
-			if(f != null && f.exists() && f.getProject() != project) {
+			if(f.exists() && f.getProject() != project) {
 				continue;
 			}
 
