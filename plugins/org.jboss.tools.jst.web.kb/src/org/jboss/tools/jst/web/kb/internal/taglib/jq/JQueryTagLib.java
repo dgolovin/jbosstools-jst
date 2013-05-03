@@ -10,23 +10,25 @@
  ******************************************************************************/ 
 package org.jboss.tools.jst.web.kb.internal.taglib.jq;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+import javax.xml.xpath.XPath;
+import javax.xml.xpath.XPathConstants;
+import javax.xml.xpath.XPathExpressionException;
+import javax.xml.xpath.XPathFactory;
+
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IResource;
-import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IPath;
 import org.eclipse.jface.resource.ImageDescriptor;
-import org.eclipse.wst.sse.core.StructuredModelManager;
-import org.eclipse.wst.sse.core.internal.provisional.IStructuredModel;
 import org.eclipse.wst.sse.core.internal.provisional.text.IStructuredDocumentRegion;
 import org.eclipse.wst.xml.core.internal.provisional.document.IDOMAttr;
 import org.eclipse.wst.xml.core.internal.provisional.document.IDOMDocument;
-import org.eclipse.wst.xml.core.internal.provisional.document.IDOMModel;
 import org.eclipse.wst.xml.core.internal.provisional.document.IDOMNode;
 import org.jboss.tools.common.text.TextProposal;
+import org.jboss.tools.common.text.ext.util.StructuredModelWrapper;
+import org.jboss.tools.common.text.ext.util.StructuredModelWrapper.ICommand;
 import org.jboss.tools.jst.web.kb.IPageContext;
 import org.jboss.tools.jst.web.kb.KbQuery;
 import org.jboss.tools.jst.web.kb.WebKbPlugin;
@@ -36,9 +38,6 @@ import org.jboss.tools.jst.web.kb.taglib.ICustomTagLibrary;
 import org.jboss.tools.jst.web.kb.taglib.INameSpace;
 import org.jboss.tools.jst.web.kb.taglib.ITagLibRecognizer;
 import org.jboss.tools.jst.web.kb.taglib.ITagLibrary;
-import org.w3c.dom.Element;
-import org.w3c.dom.NamedNodeMap;
-import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
 /**
@@ -46,8 +45,12 @@ import org.w3c.dom.NodeList;
  */
 public class JQueryTagLib implements ICustomTagLibrary {
 
+	private static final String SHARP = "#";
+	private static final String VERSION = "1";
+	private static final IComponent[] EMPTY = new IComponent[0];
 	private static final ImageDescriptor IMAGE = WebKbPlugin.getImageDescriptor(WebKbPlugin.class, "EnumerationProposal.gif"); //$NON-NLS-1$
 	private static final String URI = "jQuery";
+	protected static final XPath XPATH = XPathFactory.newInstance().newXPath();
 
 	private ITagLibRecognizer recognizer;
 
@@ -72,89 +75,44 @@ public class JQueryTagLib implements ICustomTagLibrary {
 	 */
 	@Override
 	public TextProposal[] getProposals(KbQuery query, IPageContext context) {
-		List<TextProposal> proposals = new ArrayList<TextProposal>();
-
-		if(query.getType()==KbQuery.Type.ATTRIBUTE_VALUE) {
-			String mask = query.getValue();
-			if(mask.startsWith("#")) {
-				String idMask = mask.substring(1);
-				ElementID[] ids = findAllIds(context);
-				for (ElementID id : ids) {
-					String idText = id.getId();
-					if(idText.startsWith(idMask)) {
-						String proposaltext = "#" + idText;
-						TextProposal proposal = new TextProposal();
-						proposal.setLabel(proposaltext);
-						proposal.setReplacementString(proposaltext);
-						proposal.setPosition(proposaltext.length());
-						proposal.setImageDescriptor(IMAGE);
-						proposal.setContextInfo(id.getDescription());
-	
-						proposals.add(proposal);
+		final List<TextProposal> proposals = new ArrayList<TextProposal>();
+		IFile file = context.getResource();
+		if (query.getType() == KbQuery.Type.ATTRIBUTE_VALUE && file != null) {
+			final String mask = query.getValue();
+			if (mask.startsWith(SHARP)) {
+				StructuredModelWrapper.execute(file, new ICommand<Object>() {
+					public Object execute(IDOMDocument xmlDocument) {
+						try {
+							NodeList list = (NodeList) XPathFactory
+									.newInstance().newXPath()
+									.compile("//*/@id[starts-with(.,'" + mask.substring(1) + "')]")
+									.evaluate(xmlDocument,XPathConstants.NODESET);
+							for (int i = 0; i < list.getLength(); i++) {
+								IDOMAttr attr = ((IDOMAttr) list.item(i));
+								IStructuredDocumentRegion s = ((IDOMNode) attr
+										.getOwnerElement())
+										.getStartStructuredDocumentRegion();
+								String pt = SHARP + attr.getNodeValue();
+								TextProposal proposal = new TextProposal();
+								proposal.setLabel(pt);
+								proposal.setReplacementString(pt);
+								proposal.setPosition(pt.length());
+								proposal.setImageDescriptor(IMAGE);
+								proposal.setContextInfo(s.getText());
+								proposals.add(proposal);
+							}
+						} catch (XPathExpressionException e) {
+							WebKbPlugin.getDefault().logError(e);
+						}
+						return null;
 					}
-				}
+				});
 			}
 		}
 
 		return proposals.toArray(new TextProposal[proposals.size()]);
 	}
 
-	/**
-	 * Returns an array of all element ID (<tagname id="..."/>) defined in the page
-	 * @param context
-	 * @return
-	 */
-	public static ElementID[] findAllIds(IPageContext context) {
-		List<ElementID> ids = new ArrayList<ElementID>();
-
-		IFile file = context.getResource();
-		if(file!=null) {
-			IStructuredModel model = null;
-			try {
-				model = StructuredModelManager.getModelManager().getModelForRead(file);
-				IDOMDocument xmlDocument = (model instanceof IDOMModel) ? ((IDOMModel) model).getDocument() : null;
-				if(xmlDocument != null) {
-					findIdsInChildElements(ids, xmlDocument);
-				}
-			} catch (IOException e) {
-				WebKbPlugin.getDefault().logError(e);
-			} catch (CoreException e) {
-				WebKbPlugin.getDefault().logError(e);
-			} finally {
-				if (model != null) {
-					model.releaseFromRead();
-				}
-			}
-		}
-
-		return ids.toArray(new ElementID[ids.size()]);
-	}
-
-	private static void findIdsInChildElements(List<ElementID> ids, Node parentNode) {
-		NodeList list = parentNode.getChildNodes();
-		for(int i = 0; i < list.getLength(); i++) {
-			Node child = list.item(i);
-			if(child instanceof Element) {
-				NamedNodeMap attributes = child.getAttributes();
-				for(int j = 0; j < attributes.getLength(); j++) {
-					Node attr = attributes.item(j);
-					if("id".equalsIgnoreCase(attr.getNodeName())) {
-						String id = attr.getNodeValue();
-						if (attr instanceof IDOMAttr) {
-							int offset = ((IDOMAttr)attr).getValueRegionStartOffset() + 1;
-							String nodeString = null;
-							if(child instanceof IDOMNode) {
-								IStructuredDocumentRegion s = ((IDOMNode)child).getStartStructuredDocumentRegion();
-								nodeString = s.getText();
-							}
-							ids.add(new ElementID(id, offset, nodeString));
-						}
-					}
-				}
-				findIdsInChildElements(ids, child);
-			}
-		}
-	}
 
 	/* (non-Javadoc)
 	 * @see org.jboss.tools.jst.web.kb.taglib.ITagLibrary#getResource()
@@ -193,7 +151,7 @@ public class JQueryTagLib implements ICustomTagLibrary {
 	 */
 	@Override
 	public String getVersion() {
-		return "1";
+		return VERSION;
 	}
 
 	/* (non-Javadoc)
@@ -201,7 +159,7 @@ public class JQueryTagLib implements ICustomTagLibrary {
 	 */
 	@Override
 	public IComponent[] getComponents() {
-		return new IComponent[0];
+		return EMPTY;
 	}
 
 	/* (non-Javadoc)
@@ -209,7 +167,7 @@ public class JQueryTagLib implements ICustomTagLibrary {
 	 */
 	@Override
 	public IComponent[] getComponents(String nameTemplate) {
-		return new IComponent[0];
+		return EMPTY;
 	}
 
 	/* (non-Javadoc)
@@ -233,7 +191,7 @@ public class JQueryTagLib implements ICustomTagLibrary {
 	 */
 	@Override
 	public IComponent[] getComponents(KbQuery query, IPageContext context) {
-		return new IComponent[0];
+		return EMPTY;
 	}
 
 	@Override
@@ -241,42 +199,5 @@ public class JQueryTagLib implements ICustomTagLibrary {
 		JQueryTagLib newLib = new JQueryTagLib();
 		newLib.recognizer = recognizer;
 		return newLib;
-	}
-
-	public static class ElementID {
-
-		private String id;
-		private int offset;
-		private String description;
-
-		public ElementID(String id, int offset, String description) {
-			this.id = id;
-			this.offset = offset;
-			if(description!=null) {
-				description = description.replace("<", "&lt;").replace(">", "&gt;");
-			}
-			this.description = description;
-		}
-
-		/**
-		 * @return the description
-		 */
-		public String getDescription() {
-			return description;
-		}
-
-		/**
-		 * @return the id
-		 */
-		public String getId() {
-			return id;
-		}
-
-		/**
-		 * @return the offset
-		 */
-		public int getOffset() {
-			return offset;
-		}
 	}
 }
