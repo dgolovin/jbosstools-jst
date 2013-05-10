@@ -702,24 +702,24 @@ public class CSSClassHyperlink extends AbstractHyperlink {
 		int offset = start;
 		int pair = -1;
 		boolean inQuotes = false;
-		
+
 		while (offset < text.length()) {
-            int character = text.charAt(offset);
-            if (inQuotes) {
-            	if (character == pair) {
-            		inQuotes = false;
-            	} 
-            } else {
-            	if (character == '"' || character == '\'') {
-            		pair = character;
-            		inQuotes = true;
-            	} else {
-            		for (char ch : chars) {
-                		if (character == ch)
-                    		return offset;
-            		}
-            	}
-            }
+			int character = text.charAt(offset);
+			if (inQuotes) {
+				if (character == pair) {
+					inQuotes = false;
+				}
+			} else {
+				if (character == '"' || character == '\'') {
+					pair = character;
+					inQuotes = true;
+				} else {
+					for (char ch : chars) {
+						if (character == ch)
+							return offset;
+					}
+				}
+			}
 			offset++;
 		}
 		return -1;
@@ -734,20 +734,14 @@ public class CSSClassHyperlink extends AbstractHyperlink {
 
 		IWorkbenchPage workbenchPage = ExtensionsPlugin.getDefault()
 				.getWorkbench().getActiveWorkbenchWindow().getActivePage();
-		IEditorPart part = null;
-		if (file != null) {
-			try {
-				part = IDE.openEditor(workbenchPage, file, true);
-			} catch (PartInitException e) {
-				e.printStackTrace();
+		try {
+			IEditorPart part = IDE.openEditor(workbenchPage, file, true);
+			if (part == null) {
+				StructuredSelectionHelper.setSelectionAndReveal(part,region);
 			}
-		}
-		if (part == null) {
+		} catch (PartInitException e) {
 			openFileFailed();
-			return;
 		}
-		StructuredSelectionHelper.setSelectionAndReveal(part,
-				region);
 	}
 	
 	/**
