@@ -22,53 +22,57 @@ import org.jboss.tools.jst.web.ui.palette.html.wizard.WizardMessages;
  * @author Viacheslav Kabanovich
  *
  */
-public class NewRadioWizardPage extends AbstractNewHTMLWidgetWizardPage implements JQueryConstants {
-	RadioEditor buttons = new RadioEditor(this, 1, 8);
+public class NewCollapsibleSetWizardPage extends AbstractNewHTMLWidgetWizardPage implements JQueryConstants {
+	CollapsiblesEditor items = new CollapsiblesEditor(this, 1, 8);
 
-	public NewRadioWizardPage() {
-		super("newRadio", WizardMessages.newRadioTitle);
-		setDescription(WizardMessages.newRadioDescription);
+	public NewCollapsibleSetWizardPage() {
+		super("newCollapsibleSet", WizardMessages.newCollapsibleSetWizardTitle);
+		setDescription(WizardMessages.newCollapsibleSetWizardDescription);
 	}
 
 	protected void createFieldPanel(Composite parent) {
-		IFieldEditor legend = JQueryFieldEditorFactory.createLegendEditor();
-		addEditor(legend, parent);
-
-		IFieldEditor layoutEditor = JQueryFieldEditorFactory.createLayoutEditor();
-		layoutEditor.setValue(LAYOUT_VERTICAL);
-		addEditor(layoutEditor, parent, true);
-
-		Composite panel = buttons.createControl(parent, WizardMessages.itemsLabel);
+		Composite[] columns = NewRangeSliderWizardPage.createTwoColumns(parent);
+		Composite left = columns[0];
+		Composite right = columns[1];
 
 		IFieldEditor mini = JQueryFieldEditorFactory.createMiniEditor();
-		addEditor(mini, panel);
+		addEditor(mini, left);
+
+		IFieldEditor inset = JQueryFieldEditorFactory.createInsetEditor();
+		addEditor(inset, right);
+
+		Composite panel = items.createControl(parent, WizardMessages.itemsLabel);
+
+		IFieldEditor collapsedIcon = JQueryFieldEditorFactory.createCollapsedIconEditor();
+		addEditor(collapsedIcon, panel, true);
+
+		IFieldEditor expandedIcon = JQueryFieldEditorFactory.createExpandedIconEditor();
+		addEditor(expandedIcon, panel, true);
 
 		IFieldEditor iconpos = JQueryFieldEditorFactory.createIconPositionEditor();
 		addEditor(iconpos, panel, true);
 
 		IFieldEditor theme = JQueryFieldEditorFactory.createDataThemeEditor();
 		addEditor(theme, parent, true);
+
+		IFieldEditor contentTheme = JQueryFieldEditorFactory.createDataContentThemeEditor();
+		addEditor(contentTheme, parent, true);
+
+		inset.setValue(TRUE);
 	}
 
 	@Override
 	public void propertyChange(PropertyChangeEvent evt) {
-		if(buttons.isSwitching) {
+		if(items.isSwitching) {
 			return;
 		}
 		String name = evt.getPropertyName();
 		String value = evt.getNewValue().toString();
-		if(buttons.onPropertyChange(name, value)) {
-			if(EDITOR_ID_CHECKED.equals(name)) {
-				buttons.onCheckedModified();
+		if(items.onPropertyChange(name, value)) {
+			if(EDITOR_ID_COLLAPSED.equals(name)) {
+				items.onCollapsedModified();
 			}
 		}
-
-		IFieldEditor iconpos = getEditor(EDITOR_ID_ICON_POS);
-		if(iconpos != null) {
-			boolean h = (LAYOUT_HORIZONTAL.equals(getEditorValue(EDITOR_ID_LAYOUT)));
-			iconpos.setEnabled(!h);
-		}		
-
 		super.propertyChange(evt);
 	}
 

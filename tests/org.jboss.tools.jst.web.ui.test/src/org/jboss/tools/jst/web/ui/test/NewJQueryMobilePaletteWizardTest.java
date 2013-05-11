@@ -19,6 +19,8 @@ import org.jboss.tools.jst.web.ui.palette.html.jquery.wizard.NewButtonWizard;
 import org.jboss.tools.jst.web.ui.palette.html.jquery.wizard.NewButtonWizardPage;
 import org.jboss.tools.jst.web.ui.palette.html.jquery.wizard.NewCheckBoxWizard;
 import org.jboss.tools.jst.web.ui.palette.html.jquery.wizard.NewCheckBoxWizardPage;
+import org.jboss.tools.jst.web.ui.palette.html.jquery.wizard.NewCollapsibleSetWizard;
+import org.jboss.tools.jst.web.ui.palette.html.jquery.wizard.NewCollapsibleSetWizardPage;
 import org.jboss.tools.jst.web.ui.palette.html.jquery.wizard.NewCollapsibleWizard;
 import org.jboss.tools.jst.web.ui.palette.html.jquery.wizard.NewCollapsibleWizardPage;
 import org.jboss.tools.jst.web.ui.palette.html.jquery.wizard.NewDialogWizard;
@@ -51,6 +53,8 @@ import org.jboss.tools.jst.web.ui.palette.html.jquery.wizard.NewRangeSliderWizar
 import org.jboss.tools.jst.web.ui.palette.html.jquery.wizard.NewRangeSliderWizardPage;
 import org.jboss.tools.jst.web.ui.palette.html.jquery.wizard.NewSelectMenuWizard;
 import org.jboss.tools.jst.web.ui.palette.html.jquery.wizard.NewSelectMenuWizardPage;
+import org.jboss.tools.jst.web.ui.palette.html.jquery.wizard.NewTableWizard;
+import org.jboss.tools.jst.web.ui.palette.html.jquery.wizard.NewTableWizardPage;
 import org.jboss.tools.jst.web.ui.palette.html.jquery.wizard.NewTextInputWizard;
 import org.jboss.tools.jst.web.ui.palette.html.jquery.wizard.NewTextInputWizardPage;
 import org.jboss.tools.jst.web.ui.palette.html.jquery.wizard.NewToggleWizard;
@@ -110,11 +114,24 @@ public class NewJQueryMobilePaletteWizardTest extends AbstractPaletteEntryTest i
 		assertAttrExists(wizard, ATTR_DATA_ROLE, ROLE_FOOTER);
 		assertTextExists(wizard, wizardPage.getEditorValue(EDITOR_ID_FOOTER_TITLE));
 
+		//Check " < > in attribute value.
+		assertTextDoesNotExist(wizard, ATTR_DATA_THEME);
+		wizardPage.setEditorValue(EDITOR_ID_THEME, "\"</div>");
+		assertAttrExists(wizard, ATTR_DATA_THEME, "&quot;&lt;/div&gt;");
+		wizardPage.setEditorValue(EDITOR_ID_THEME, "");
+		assertTextDoesNotExist(wizard, ATTR_DATA_THEME);
+
+		//Check < > in text.
+		String headerText = "<page title>";
+		String headerHtmlText = "&lt;page title&gt;";
+
+		wizardPage.setEditorValue(EDITOR_ID_HEADER_TITLE, headerText);
+
 		wizard.performFinish();
 
-		String text = textEditor.getDocumentProvider().getDocument(textEditor.getEditorInput()).get();
-		assertTrue(text.indexOf(ROLE_CONTENT) > 0);
-		assertTrue(text.indexOf(ROLE_PAGE) > 0);
+		assertTextIsInserted(ROLE_CONTENT);
+		assertTextIsInserted(ROLE_PAGE);
+		assertTextIsInserted(headerHtmlText);
 	}
 
 	public void testNewCheckboxWizard() {
@@ -139,8 +156,7 @@ public class NewJQueryMobilePaletteWizardTest extends AbstractPaletteEntryTest i
 
 		wizard.performFinish();
 
-		String text = textEditor.getDocumentProvider().getDocument(textEditor.getEditorInput()).get();
-		assertTrue(text.indexOf(label) > 0);
+		assertTextIsInserted(label);
 	}
 
 	public void testNewToggleWizard() {
@@ -705,6 +721,61 @@ public class NewJQueryMobilePaletteWizardTest extends AbstractPaletteEntryTest i
 		assertAttrExists(wizard, ATTR_DATA_POSITION_FIXED, TRUE);
 		wizardPage.setEditorValue(EDITOR_ID_FIXED_POSITION, FALSE);
 		assertTextDoesNotExist(wizard, ATTR_DATA_POSITION_FIXED);
+
+		wizard.performFinish();
+	}
+
+	public void testNewTableWizard() {
+		IWizardPage currentPage = runToolEntry("jQuery Mobile", "Table", true);
+
+		assertTrue(currentPage instanceof NewTableWizardPage);
+		NewTableWizardPage wizardPage = (NewTableWizardPage)currentPage;
+		NewTableWizard wizard = (NewTableWizard)wizardPage.getWizard();
+
+		assertAttrExists(wizard, ATTR_DATA_ROLE, ROLE_TABLE);
+
+		assertTextExists(wizard, CLASS_RESPONSIVE);
+		wizardPage.setEditorValue(EDITOR_ID_RESPONSIVE, FALSE);
+		assertTextDoesNotExist(wizard, CLASS_RESPONSIVE);
+		wizardPage.setEditorValue(EDITOR_ID_RESPONSIVE, TRUE);
+		assertTextExists(wizard, CLASS_RESPONSIVE);
+
+		assertTextDoesNotExist(wizard, CLASS_TABLE_STRIPE);
+		wizardPage.setEditorValue(EDITOR_ID_STRIPES, TRUE);
+		assertTextExists(wizard, CLASS_TABLE_STRIPE);
+		wizardPage.setEditorValue(EDITOR_ID_STRIPES, FALSE);
+		assertTextDoesNotExist(wizard, CLASS_TABLE_STRIPE);
+
+		wizard.performFinish();
+	}
+
+	public void testNewCollapsibleSetBarWizard() {
+		IWizardPage currentPage = runToolEntry("jQuery Mobile", "Collapsible Set", true);
+
+		assertTrue(currentPage instanceof NewCollapsibleSetWizardPage);
+
+		NewCollapsibleSetWizardPage wizardPage = (NewCollapsibleSetWizardPage)currentPage;
+		NewCollapsibleSetWizard wizard = (NewCollapsibleSetWizard)wizardPage.getWizard();
+		
+		assertEquals("3", wizardPage.getEditorValue(EDITOR_ID_NUMBER_OF_ITEMS));
+
+		wizardPage.setEditorValue(EDITOR_ID_NUMBER_OF_ITEMS, "4");
+		assertEquals("4", wizardPage.getEditorValue(EDITOR_ID_NUMBER_OF_ITEMS));
+
+		assertTextDoesNotExist(wizard, ATTR_DATA_EXPANDED_ICON);
+		wizardPage.setEditorValue(EDITOR_ID_EXPANDED_ICON, "delete");
+		assertAttrExists(wizard, ATTR_DATA_EXPANDED_ICON, "delete");
+		wizardPage.setEditorValue(EDITOR_ID_EXPANDED_ICON, "");
+		assertTextDoesNotExist(wizard, ATTR_DATA_EXPANDED_ICON);
+	
+		assertTextDoesNotExist(wizard, ATTR_DATA_ICONPOS);
+		wizardPage.setEditorValue(EDITOR_ID_ICON_POS, "right");
+		assertAttrExists(wizard, ATTR_DATA_ICONPOS, "right");
+
+		wizardPage.setEditorValue(EDITOR_ID_MINI, TRUE);
+		assertAttrExists(wizard, ATTR_DATA_MINI, TRUE);
+		wizardPage.setEditorValue(EDITOR_ID_MINI, FALSE);
+		assertTextDoesNotExist(wizard, ATTR_DATA_MINI);
 
 		wizard.performFinish();
 	}

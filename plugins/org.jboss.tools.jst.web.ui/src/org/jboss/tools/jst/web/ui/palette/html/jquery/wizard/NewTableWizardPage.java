@@ -10,6 +10,9 @@
  ******************************************************************************/ 
 package org.jboss.tools.jst.web.ui.palette.html.jquery.wizard;
 
+import java.beans.PropertyChangeEvent;
+
+import org.eclipse.swt.SWT;
 import org.eclipse.swt.widgets.Composite;
 import org.jboss.tools.common.model.ui.editors.dnd.ValidationException;
 import org.jboss.tools.common.ui.widget.editor.IFieldEditor;
@@ -21,23 +24,47 @@ import org.jboss.tools.jst.web.ui.palette.html.wizard.WizardMessages;
  * @author Viacheslav Kabanovich
  *
  */
-public class NewDialogWizardPage extends AbstractNewHTMLWidgetWizardPage implements JQueryConstants {
+public class NewTableWizardPage extends AbstractNewHTMLWidgetWizardPage implements JQueryConstants {
+	ColumnEditor columns = new ColumnEditor(this, 1, 6);
 
-	public NewDialogWizardPage() {
-		super("newDialog", WizardMessages.newDialogWizardTitle);
-		setDescription(WizardMessages.newDialogWizardDescription);
+	public NewTableWizardPage() {
+		super("newTable", WizardMessages.newTableTitle);
+		setDescription(WizardMessages.newTableDescription);
 	}
 
 	protected void createFieldPanel(Composite parent) {
-		IFieldEditor title = JQueryFieldEditorFactory.createTitleEditor();
-		title.setValue("Dialog");
-		addEditor(title, parent);
+		IFieldEditor modeEditor = JQueryFieldEditorFactory.createTableModeEditor();
+		addEditor(modeEditor, parent);
 
 		IFieldEditor id = JQueryFieldEditorFactory.createIDEditor();
 		addEditor(id, parent);
 
-		IFieldEditor close = JQueryFieldEditorFactory.createCloseButtonEditor();
-		addEditor(close, parent);
+		columns.createControl(parent, WizardMessages.columnsLabel);
+
+		Composite[] columns = NewRangeSliderWizardPage.createTwoColumns(parent);
+		Composite left = columns[0];
+		Composite right = columns[1];
+
+		IFieldEditor responsive = JQueryFieldEditorFactory.createResponsiveEditor();
+		addEditor(responsive, left);
+
+		IFieldEditor stripes = JQueryFieldEditorFactory.createStripesEditor();
+		addEditor(stripes, right);
+
+		IFieldEditor theme = JQueryFieldEditorFactory.createDataThemeEditor();
+		addEditor(theme, parent, true);
+	}
+
+	@Override
+	public void propertyChange(PropertyChangeEvent evt) {
+		if(columns.isSwitching) {
+			return;
+		}
+		String name = evt.getPropertyName();
+		String value = evt.getNewValue().toString();
+		columns.onPropertyChange(name, value);
+
+		super.propertyChange(evt);
 	}
 
 	public void validate() throws ValidationException {
@@ -46,4 +73,9 @@ public class NewDialogWizardPage extends AbstractNewHTMLWidgetWizardPage impleme
 			throw new ValidationException(WizardMessages.errorIDisUsed);
 		}
 	}
+
+	protected int getPreferredBrowser() {
+		return SWT.WEBKIT;
+	}
+
 }

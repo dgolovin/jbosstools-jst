@@ -33,6 +33,7 @@ public class JSTWebUIImages extends CommonUIImages{
 	public static String GROUP_BUTTON_IMAGE    = WIZARDS_PATH + "ButtonsWizBan.png"; //$NON-NLS-1$
 	public static String GRID_IMAGE    = WIZARDS_PATH + "GridWizBan.png"; //$NON-NLS-1$
 	public static String COLLAPSIBLE_IMAGE    = WIZARDS_PATH + "CollapsibleWizBan.png"; //$NON-NLS-1$
+	public static String COLLAPSIBLE_SET_IMAGE    = WIZARDS_PATH + "CollapsibleSetWizBan.png"; //$NON-NLS-1$
 	public static String TOGGLE_IMAGE    = WIZARDS_PATH + "ToggleWizBan.png"; //$NON-NLS-1$
 	public static String RADIO_IMAGE    = WIZARDS_PATH + "RadioWizBan.png"; //$NON-NLS-1$
 	public static String CHECKBOX_IMAGE    = WIZARDS_PATH + "CheckboxWizBan.png"; //$NON-NLS-1$
@@ -43,6 +44,7 @@ public class JSTWebUIImages extends CommonUIImages{
 	public static String TEXT_INPUT_IMAGE    = WIZARDS_PATH + "TextInputWizBan.png"; //$NON-NLS-1$
 	public static String SELECT_MENU_IMAGE    = WIZARDS_PATH + "SelectWizBan.png"; //$NON-NLS-1$
 	public static String PANEL_IMAGE    = WIZARDS_PATH + "PanelWizBan.png"; //$NON-NLS-1$
+	public static String TABLE_IMAGE    = WIZARDS_PATH + "TableWizBan.png"; //$NON-NLS-1$
 
 	private static JSTWebUIImages INSTANCE;
 	

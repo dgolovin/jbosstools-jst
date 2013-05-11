@@ -29,7 +29,7 @@ import org.eclipse.wst.xml.core.internal.provisional.document.IDOMDocument;
 import org.eclipse.wst.xml.core.internal.provisional.document.IDOMNode;
 import org.jboss.tools.common.text.TextProposal;
 import org.jboss.tools.common.text.ext.util.StructuredModelWrapper;
-import org.jboss.tools.common.text.ext.util.StructuredModelWrapper.Command;
+import org.jboss.tools.common.text.ext.util.StructuredModelWrapper.ICommand;
 import org.jboss.tools.jst.web.kb.IPageContext;
 import org.jboss.tools.jst.web.kb.KbQuery;
 import org.jboss.tools.jst.web.kb.WebKbPlugin;
@@ -82,7 +82,7 @@ public class JQueryTagLib implements ICustomTagLibrary {
 		if (query.getType() == KbQuery.Type.ATTRIBUTE_VALUE && file != null) {
 			final String mask = query.getValue();
 			if (mask.startsWith(SHARP)) {
-				StructuredModelWrapper.execute(file, new Command() {
+				StructuredModelWrapper.execute(file, new ICommand() {
 					public void execute(IDOMDocument xmlDocument) {
 						try {
 							NodeList list = (NodeList) XPathFactory.newInstance().newXPath().compile(

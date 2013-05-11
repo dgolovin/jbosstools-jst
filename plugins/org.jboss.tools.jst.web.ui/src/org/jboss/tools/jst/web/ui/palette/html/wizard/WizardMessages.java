@@ -96,8 +96,17 @@ public class WizardMessages extends NLS {
 	public static String panelPositionLabel;
 	public static String displayLabel;
 	public static String swipeCloseLabel;
+	public static String modeLabel;
+	public static String modeColumntoggleLabel;
+	public static String modeReflowLabel;
+	public static String headLabel;
+	public static String priorityLabel;
+	public static String contentLabel;
+	public static String responsiveLabel;
+	public static String stripesLabel;
 
 	public static String itemsLabel;
+	public static String columnsLabel;
 
 	public static String newCheckboxWizardTitle;
 	public static String newCheckboxWizardDescription;
@@ -147,6 +156,9 @@ public class WizardMessages extends NLS {
 	public static String newCollapsibleWizardTitle;
 	public static String newCollapsibleWizardDescription;
 
+	public static String newCollapsibleSetWizardTitle;
+	public static String newCollapsibleSetWizardDescription;
+
 	public static String newSelectMenuWizardTitle;
 	public static String newSelectMenuWizardDescription;
 
@@ -158,6 +170,9 @@ public class WizardMessages extends NLS {
 
 	public static String newPanelWizardTitle;
 	public static String newPanelWizardDescription;
+
+	public static String newTableTitle;
+	public static String newTableDescription;
 	
 	public static String errorIDisUsed;
 	

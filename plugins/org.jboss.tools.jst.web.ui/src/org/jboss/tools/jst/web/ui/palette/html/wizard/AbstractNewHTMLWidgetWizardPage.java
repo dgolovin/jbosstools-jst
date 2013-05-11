@@ -31,14 +31,18 @@ import org.eclipse.swt.events.SelectionListener;
 import org.eclipse.swt.graphics.Font;
 import org.eclipse.swt.graphics.FontData;
 import org.eclipse.swt.graphics.GC;
+import org.eclipse.swt.graphics.Point;
 import org.eclipse.swt.graphics.Rectangle;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Button;
+import org.eclipse.swt.widgets.Combo;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Display;
+import org.eclipse.swt.widgets.Event;
 import org.eclipse.swt.widgets.Label;
+import org.eclipse.swt.widgets.Listener;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.Text;
 import org.jboss.tools.common.model.ui.editors.dnd.DefaultDropWizardPage;
@@ -79,7 +83,7 @@ public class AbstractNewHTMLWidgetWizardPage extends DefaultDropWizardPage imple
 
 	@Override
 	public void createControl(Composite parent) {
-		final Composite panel = new Composite(parent, SWT.NONE);
+		Composite panel = new Composite(parent, SWT.NONE);
 		GridData d = new GridData(GridData.FILL_BOTH);
 		panel.setLayoutData(d);
 		GridLayout layout = new GridLayout(3, false);
@@ -135,48 +139,15 @@ public class AbstractNewHTMLWidgetWizardPage extends DefaultDropWizardPage imple
 		 * and their content will be formatted to the available width. Also, initial width
 		 * is to depend on system font size so that initial content serves best to that purpose. 
 		 */
-		text.setText("<html><body>aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa</body></html>");
-		/*
-		//We can provide webkit in this way
-		String property = "org.eclipse.swt.browser.DefaultType";
-		String defaultBrowser = System.getProperty(property);
-		boolean hasDefaultBrowser = defaultBrowser != null;
-		System.getProperties().setProperty(property, "webkit");
-		*/
+		text.setText("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n<html><body>aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa</body></html>");
 
 		Composite browserPanel = createBrowserPanel(previewPanel);
+		browser = createBrowser(browserPanel);
 
-		try {
-			try {
-				browser = new Browser(browserPanel, SWT.READ_ONLY | SWT.MOZILLA | SWT.NO_SCROLL);
-			} catch (SWTError e) {
-				try {
-					browser = new Browser(browserPanel, SWT.READ_ONLY | SWT.NONE | SWT.NO_SCROLL);
-				} catch (SWTError e1) {
-					String message = "Cannot create neither Mozilla nor default browser";
-					Exception ex = new HTMLWizardVisualPreviewInitializationException(message, e1);
-					WebUiPlugin.getDefault().logError(message, ex);
-				}
-			}
-		} finally {
-			/*
-			//Use if system property was modified
-			if(hasDefaultBrowser) {
-				System.getProperties().setProperty(property, defaultBrowser);
-			}
-			*/
-		}
-//		browser.setLayoutData(new GridData(GridData.FILL_BOTH));
-		GridData gridData = new GridData();
-		gridData.horizontalAlignment = SWT.FILL;
-		gridData.verticalAlignment = SWT.FILL;
-		gridData.grabExcessHorizontalSpace = true;
-		gridData.grabExcessVerticalSpace = true;
 		if(browser != null) {
-			browser.setLayoutData(gridData);
+			browser.setLayoutData(new GridData(GridData.FILL_BOTH));
 			browser.pack();
 		}
-
 		createDisclaimer(browserPanel);
 
 		previewPanel.setWeights(new int[]{4,6});
@@ -188,6 +159,7 @@ public class AbstractNewHTMLWidgetWizardPage extends DefaultDropWizardPage imple
 				if(text == null || text.isDisposed()) {
 					return;
 				}
+				updatePreviewPanel(true, true);
 				updatePreviewContent();
 				runValidation();
 				text.addControlListener(new ControlAdapter() {
@@ -199,6 +171,10 @@ public class AbstractNewHTMLWidgetWizardPage extends DefaultDropWizardPage imple
 			}
 		});
 		updatePreviewPanel(true, true);
+		Display.getDefault().addFilter(SWT.FocusOut, focusReturn);
+		Display.getDefault().addFilter(SWT.MouseDown, focusReturn);
+		Display.getDefault().addFilter(SWT.KeyDown, focusReturn);
+		Display.getDefault().addFilter(SWT.Modify, focusReturn);
 	}
 
 	public String getBrowserType() {
@@ -258,6 +234,44 @@ public class AbstractNewHTMLWidgetWizardPage extends DefaultDropWizardPage imple
 		l.marginHeight = 0;
 		browserPanel.setLayout(l);
 		return browserPanel;
+	}
+
+	protected Browser createBrowser(Composite browserPanel) {
+		/*
+		//We can provide webkit in this way
+		String property = "org.eclipse.swt.browser.DefaultType";
+		String defaultBrowser = System.getProperty(property);
+		boolean hasDefaultBrowser = defaultBrowser != null;
+		System.getProperties().setProperty(property, "webkit");
+		*/
+		int browserIndex = getPreferredBrowser();
+		try {
+			try {
+				return new Browser(browserPanel, SWT.READ_ONLY | browserIndex | SWT.NO_SCROLL);
+			} catch (SWTError e) {
+				try {
+					return new Browser(browserPanel, SWT.READ_ONLY | SWT.NONE | SWT.NO_SCROLL);
+				} catch (SWTError e1) {
+					String message = "Cannot create neither Mozilla nor default browser";
+					Exception ex = new HTMLWizardVisualPreviewInitializationException(message, e1);
+					WebUiPlugin.getDefault().logError(message, ex);
+				}
+			}
+		} finally {
+			/*
+			//Use if system property was modified
+			if(hasDefaultBrowser) {
+				System.getProperties().setProperty(property, defaultBrowser);
+			}
+			*/
+		}
+		return null;
+	}
+
+	protected static final boolean isMacOS = "Mac OS X".equals(System.getProperty("os.name"));
+
+	protected int getPreferredBrowser() {
+		return isMacOS ? SWT.WEBKIT : SWT.MOZILLA;
 	}
 
 	private void createDisclaimer(Composite browserPanel) {
@@ -339,10 +353,6 @@ public class AbstractNewHTMLWidgetWizardPage extends DefaultDropWizardPage imple
 		isUpdating = b;
 	}
 
-	protected int getAdditionalHeight() {
-		return 0;
-	}
-
 	@Override
 	public void propertyChange(PropertyChangeEvent evt) {
 		runValidation();
@@ -391,24 +401,28 @@ public class AbstractNewHTMLWidgetWizardPage extends DefaultDropWizardPage imple
 		if(previewPanel == null || previewPanel.isDisposed()) {
 			return;
 		}
-		if(previewPanel.isVisible()) {			
+		if(previewPanel.isVisible()) {
+			if(lastHideShellWidth < 0) {
+				lastHideShellWidth = previewPanel.getShell().getSize().x - previewPanel.getSize().x;
+			}
 			previewPanel.setVisible(false);
-			showPreviewButton.setText(WizardMessages.showPreviewButtonText);
+			flipPreviewButton(WizardMessages.showPreviewButtonText);
 			GridData d = new GridData(GridData.FILL_VERTICAL);
 			d.widthHint = 0;
 			previewPanel.setLayoutData(d);
-			d = new GridData(GridData.FILL_BOTH);
-			left.setLayoutData(d);
-			updatePreviewPanel(false, first);
+			left.setLayoutData(new GridData(GridData.FILL_BOTH));
 		} else {
-			showPreviewButton.setText(WizardMessages.hidePreviewButtonText);
-			GridData d = new GridData(GridData.FILL_VERTICAL);
-			left.setLayoutData(d);
-			d = new GridData(GridData.FILL_BOTH);
-			previewPanel.setLayoutData(d);
+			flipPreviewButton(WizardMessages.hidePreviewButtonText);
+			left.setLayoutData(new GridData(GridData.FILL_VERTICAL));
+			previewPanel.setLayoutData(new GridData(GridData.FILL_BOTH));
 			previewPanel.setVisible(true);
-			updatePreviewPanel(true, first);
 		}
+		updatePreviewPanel(previewPanel.isVisible(), first);
+	}
+
+	private void flipPreviewButton(String text) {
+		showPreviewButton.setText(text);
+		showPreviewButton.getParent().layout(true);
 	}
 	
 	int lastHideShellWidth = -1;
@@ -421,15 +435,19 @@ public class AbstractNewHTMLWidgetWizardPage extends DefaultDropWizardPage imple
 
 		Rectangle r = shell.getBounds();
 		if(show) {
-			lastHideShellWidth = r.width;
+			if(!first) lastHideShellWidth = r.width;
 		} else {
 			lastShowShellWidth = r.width;
 		}
 		int width = (first) ? shell.computeSize(-1, -1).x : 
 			(show) ? (lastShowShellWidth < 0 ? r.width + 300 : lastShowShellWidth) : 
 			(lastHideShellWidth < 0 ? r.width - 300 : lastHideShellWidth);
+		if(!show && !first) {
+			int dw = shell.computeSize(-1, -1).x;
+			if(width < dw) width = dw;
+		}
 		if(first) {
-			int dh =  left.computeSize(-1, -1).y - left.getSize().y;  //getAdditionalHeight();
+			int dh =  left.computeSize(-1, -1).y - left.getSize().y;
 			if(dh > 0) {
 				r.y -= dh / 2;
 				r.height += dh;
@@ -461,25 +479,144 @@ public class AbstractNewHTMLWidgetWizardPage extends DefaultDropWizardPage imple
 		}
 		File f = getFile();
 		FileUtil.writeFile(f, getWizard().getTextForBrowser());
-		final Control c = Display.getCurrent().getFocusControl();
+
+		focusReturn.init();
+
 		if(browser.getUrl() == null || !browser.getUrl().endsWith(f.getName())
 				||"mozilla".equals(getBrowserType())) {
 			browser.setUrl(sourceURL);
 		} else {
 			browser.refresh();
 		}
-		if(c != null) {
+	}
+
+	boolean isFocusInBrowser() {
+		Control c = Display.getDefault().getFocusControl();
+		while(c != null && c != browser) {
+			c = c.getParent();
+		}
+		return c == browser;
+	}
+
+	FocusReturn focusReturn = new FocusReturn();
+
+	class FocusReturn implements Listener {
+		Control c;
+		long t;
+		Point s;
+		StringBuilder missed = new StringBuilder();
+	
+		void clear() {
+			c = null;
+			s = null;
+			t = 0;
+			missed.setLength(0);
+		}
+
+		private Point getSelection() {
+			return (c instanceof Combo) ? ((Combo)c).getSelection()
+				: (c instanceof Text) ? ((Text)c).getSelection()
+				: null;
+		}
+		
+		private String getText() {
+			return (c instanceof Combo) ? ((Combo)c).getText()
+				: (c instanceof Text) ? ((Text)c).getText()
+				: null;
+		}
+
+		private void setText(String t) {
+			if(c instanceof Combo) {
+				((Combo)c).setText(t);
+			} else if(c instanceof Text) {
+				((Text)c).setText(t);
+			}
+		}
+		
+		private void setSelection() {
+			if(c instanceof Combo) {
+				((Combo)c).setSelection(s);
+			} else if(c instanceof Text) {
+				((Text)c).setSelection(s);
+			}
+		}
+		
+		void init() {
+			clear();
+			c = Display.getDefault().getFocusControl();
+			if(c != null) {
+				t = System.currentTimeMillis();
+				s = getSelection();
+			}
+		}
+	
+		boolean isReady() {
+			if(c == null) {
+				return false;
+			}
+			if(System.currentTimeMillis() - t > 2000) {
+				clear();
+				return false;
+			}
+			return true;
+		}
+
+		void apply() {
+			if(!isReady()) {
+				return;
+			}
 			Display.getCurrent().asyncExec(new Runnable() {
 				public void run() {
-					c.forceFocus();
+					if(c != null && c != Display.getCurrent().getFocusControl() && isFocusInBrowser()) {
+						if(s != null && missed.length() > 0) {
+							String t = getText();
+							t = t.substring(0, s.x) + missed.toString() + t.substring(s.y);
+							s.x += missed.length();
+							s.y = s.x;
+							setText(t);
+						}
+						c.forceFocus();
+						if(s != null) {
+							setSelection();
+						}
+					}
+					clear();
 				}
 			});
 		}
-//		browser.setText(getWizard().getTextForBrowser());
+
+		@Override
+		public void handleEvent(Event event) {
+			if(event.type == SWT.MouseDown) {
+				clear();
+			} else if(event.type == SWT.Modify) {
+				if(isReady() && c == Display.getDefault().getFocusControl() && c == event.widget) {
+					s = getSelection();
+				}
+			} else if(event.type == SWT.KeyDown) {
+				if(isReady() && c == Display.getDefault().getFocusControl()) {
+					t = System.currentTimeMillis();
+				}
+				if(isReady() && event.widget == browser) {
+					char ch = event.character;
+					if((int)ch >= 32 && (int)ch <= 128) {
+						missed.append(ch);
+					}
+				}
+			} else if(event.type == SWT.FocusOut) {
+				apply();
+			}
+		}
 	}
 
 	int getTextLimit() {
-		int c = this.text.getSize().x - 2;
+		int c = text.getSize().x - 2;
+		if(text.getVerticalBar() != null) {
+			int w = text.getVerticalBar().getSize().x;
+			if(w > 0) {
+				c -= w + 5;
+			}
+		}
 		return c < 20 ? 20 : c;
 	}
 
@@ -492,15 +629,18 @@ public class AbstractNewHTMLWidgetWizardPage extends DefaultDropWizardPage imple
 		StringBuilder sb = new StringBuilder();
 		boolean inQuota = false;
 		boolean inTag = false;
-		int column = 0;
+		int offset = 0;
 		for (int i = 0; i < text.length(); i++) {
 			char ch = text.charAt(i);
-			if(ch == '<' && !inQuota && column + lookUp(gc, text, i) > max) {
-				sb.append("\n");
-				column = 0;
+			if(ch == '<' && !inQuota) {
+				int n = lookUp(text, i);
+				int w = gc.stringExtent(sb.substring(offset, sb.length()) + text.substring(i, n)).x;
+				if(w > max) {
+					sb.append("\n");
+					offset = sb.length();
+				}
 			}
 			sb.append(ch);
-			column += gc.getCharWidth(ch);
 			if(ch == '"') {
 				inQuota = !inQuota;
 			} else if(ch == '<' && !inQuota) {
@@ -508,17 +648,17 @@ public class AbstractNewHTMLWidgetWizardPage extends DefaultDropWizardPage imple
 			} else if(ch == '>' && !inQuota) {
 				inTag = false;
 			} else if(ch == '\n') {
-				column = 0;
+				offset = sb.length();
 			}
-			if(column > 0 && !inQuota && (ch == ' ' || ch == '>')) {
-				int l = lookUp(gc, text, i + 1);
-				if(l > 1 && column + l > max) {
+			if(sb.length() > offset && !inQuota && (ch == ' ' || ch == '>')) {
+				int l = lookUp(text, i + 1);
+				int w = gc.stringExtent(sb.substring(offset, sb.length()) + text.substring(i, l)).x;
+				if(l > i + 1 && w > max) {
 					sb.append("\n");
-					column = 0;
+					offset = sb.length();
 					if (inTag) {
 						String indent = "        ";
 						sb.append(indent);
-						column = gc.getCharWidth(' ') * indent.length();
 					}
 				}
 			}
@@ -527,20 +667,19 @@ public class AbstractNewHTMLWidgetWizardPage extends DefaultDropWizardPage imple
 		return sb.toString();
 	}
 
-	protected int lookUp(GC gc, String text, int pos) {
-		int res = 0;
+	protected int lookUp(String text, int pos) {
+		int res = pos;
 		boolean inQuota = false;
-		for (int i = pos; i < text.length(); i++) {
-			char ch = text.charAt(i);
+		for (; res < text.length(); res++) {
+			char ch = text.charAt(res);
 			if(ch == '\n') return res;
 			if(ch == '"') {
 				inQuota = !inQuota;
 			}
 			if(!inQuota) {
-				if(ch == ' ' || (i > pos && ch == '<')) return res;
-				if(ch == '>') return res + gc.getCharWidth(ch);
+				if(ch == ' ' || (res > pos && ch == '<')) return res;
+				if(ch == '>') return res + 1;
 			}
-			res += gc.getCharWidth(ch);
 		}
 		return res;
 	}
@@ -550,6 +689,10 @@ public class AbstractNewHTMLWidgetWizardPage extends DefaultDropWizardPage imple
 			sourceFile.delete();
 			sourceFile = null;
 		}
+		Display.getDefault().removeFilter(SWT.FocusOut, focusReturn);
+		Display.getDefault().removeFilter(SWT.MouseDown, focusReturn);
+		Display.getDefault().removeFilter(SWT.KeyDown, focusReturn);
+		Display.getDefault().removeFilter(SWT.Modify, focusReturn);
 		super.dispose();
 	}
 
