@@ -37,7 +37,7 @@ public class ConfigUtils {
 		IDETernProject ternProject = IDETernProject.getTernProject(project);
 		if (!ternProject.hasPlugin(TernPlugin.cordovajs)) {
 			ternProject.addPlugin(TernPlugin.cordovajs);
+			ternProject.save();
 		}
-		ternProject.save();
 	}
 }
