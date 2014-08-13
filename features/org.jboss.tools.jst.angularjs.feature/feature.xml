@@ -17,10 +17,6 @@
       %license
    </license>
 
-   <includes
-         id="org.jboss.tools.jst.jsdt.feature"
-         version="0.0.0"/>
-
    <plugin
          id="org.jboss.tools.jst.angularjs"
          download-size="0"
