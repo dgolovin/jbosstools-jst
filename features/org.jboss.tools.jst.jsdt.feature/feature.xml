@@ -17,6 +17,10 @@
       %license
    </license>
 
+   <requires>
+      <import plugin="com.google.guava"/>
+   </requires>
+
    <plugin
          id="org.jboss.tools.jst.jsdt"
          download-size="0"

@@ -16,7 +16,7 @@ location "http://download.jboss.org/jbosstools/builds/staging/jbosstools-base_ma
 	org.jboss.tools.common.all.test.feature.feature.group
 }
 
-location "http://download.jboss.org/jbosstools/updates/requirements/tern/0.6.0.201409231610-SNAPSHOT/" {
+location "http://home.exadel.com/~xden/tern/repository" {
 	tern-feature.feature.group
 	tern-jsdt-feature.feature.group
 	tern-server-nodejs-feature.feature.group
